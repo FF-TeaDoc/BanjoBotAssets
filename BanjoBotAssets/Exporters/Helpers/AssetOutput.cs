@@ -15,7 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
-using BanjoBotAssets.Artifacts.Models;
 using System.Collections.Concurrent;
 
 namespace BanjoBotAssets.Exporters.Helpers
@@ -195,6 +194,7 @@ namespace BanjoBotAssets.Exporters.Helpers
             }
         }
 
+        [Obsolete]
         public void AddCraftingRecipe(string name, IReadOnlyDictionary<string, int> ingredients)
         {
             craftingRecipes.TryAdd(name, ingredients);

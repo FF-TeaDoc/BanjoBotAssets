@@ -15,8 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
-using BanjoBotAssets.Artifacts.Models;
-
 namespace BanjoBotAssets.Exporters.UObjects
 {
     internal sealed partial class QuestExporter : UObjectExporter<UFortQuestItemDefinition, QuestItemData>
@@ -59,16 +57,6 @@ namespace BanjoBotAssets.Exporters.UObjects
             await base.ExportAssetsAsync(progress, output, cancellationToken);
         }
 
-        private async Task<UDataTable?> TryLoadTableAsync(string? path)
-        {
-            if (path == null)
-                return null;
-
-            var file = provider[path];
-            Interlocked.Increment(ref assetsLoaded);
-            return await provider.LoadObjectAsync<UDataTable>(file.PathWithoutExtension);
-        }
-
         protected override Task<bool> ExportAssetAsync(UFortQuestItemDefinition asset, QuestItemData namedItemData, Dictionary<ImageType, string> imagePaths)
         {
             var objectives = new List<QuestObjective>();
@@ -102,7 +90,10 @@ namespace BanjoBotAssets.Exporters.UObjects
             }
 
             namedItemData.Objectives = objectives.ToArray();
-            namedItemData.Category = asset.Category?.RowName.Text ?? "";
+
+            // "category" property may be lowercased
+            var category = asset.Category ?? asset.GetOrDefault<FDataTableRowHandle?>("category");
+            namedItemData.Category = category?.RowName.Text ?? "";
 
             var rewards = new List<QuestReward>();
             if (questRewardsTable != null)
@@ -166,7 +157,7 @@ namespace BanjoBotAssets.Exporters.UObjects
             return null;
         }
 
-        [GeneratedRegex(@"Zone\.Difficulty\s*>=\s*(\d+)", RegexOptions.IgnoreCase, "en-US")]
+        [GeneratedRegex(@"Zone\.Difficulty\s*>=\s*(\d+)", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
         private static partial Regex ZoneDifficultyRegex();
     }
 }

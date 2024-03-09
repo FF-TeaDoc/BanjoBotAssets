@@ -15,7 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
-using BanjoBotAssets.Artifacts.Models;
 using CUE4Parse.FN.Enums.FortniteGame;
 using System.Collections.Concurrent;
 
@@ -132,6 +131,7 @@ namespace BanjoBotAssets.Exporters.UObjects
                     var templateId = $"{Type}:{uobject.Name}";
                     var displayName = uobject.GetOrDefault<FText>("DisplayName")?.Text ?? $"<{uobject.Name}>";
                     var description = uobject.GetOrDefault<FText>("Description")?.Text;
+                    var isInventoryLimitExempt = !uobject.GetOrDefault("bInventorySizeLimited", true);
 
                     var itemData = new TItemData
                     {
@@ -140,6 +140,7 @@ namespace BanjoBotAssets.Exporters.UObjects
                         Type = Type,
                         DisplayName = displayName.Trim(),
                         Description = description,
+                        IsInventoryLimitExempt = isInventoryLimitExempt,
                     };
 
                     if (uobject.GetOrDefault<EFortItemTier>("Tier") is EFortItemTier tier && tier != default)

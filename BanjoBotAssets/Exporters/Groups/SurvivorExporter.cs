@@ -15,8 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
-using BanjoBotAssets.Artifacts.Models;
-
 // TODO: fix Halloween survivors all getting the same name: they should be separated by rarity (WorkerHalloween_VR_T04 is Lobber, WorkerHalloween_UC_T01 is Husky, etc.)
 
 namespace BanjoBotAssets.Exporters.Groups
@@ -62,7 +60,7 @@ namespace BanjoBotAssets.Exporters.Groups
             var subType = asset.bIsManager ? GetManagerJob(asset) : null;
             var displayName = asset.DisplayName?.Text ?? MakeSurvivorDisplayName(asset);
             var personality = asset.FixedPersonalityTag.GameplayTags is { Length: 1 }
-                ? asset.FixedPersonalityTag.GameplayTags[0].Text.Split('.')[^1]
+                ? asset.FixedPersonalityTag.GameplayTags[0].ToString().Split('.')[^1]
                 : null;
             return result with { SubType = subType, DisplayName = displayName, Personality = personality };
         }
@@ -98,7 +96,7 @@ namespace BanjoBotAssets.Exporters.Groups
             if (!worker.bIsManager)
                 throw new AssetFormatException(Resources.Error_NotAManager);
 
-            string synergyTag = worker.ManagerSynergyTag.First().Text;
+            string synergyTag = worker.ManagerSynergyTag.First().ToString();
             if (managerSynergyToJob.TryGetValue(synergyTag, out var job))
                 return job;
 
@@ -107,7 +105,7 @@ namespace BanjoBotAssets.Exporters.Groups
 
         private static string MakeSurvivorDisplayName(UFortWorkerType worker) =>
             worker.bIsManager ? string.Format(CultureInfo.CurrentCulture, Resources.FormatString_Field_Survivor_LeadNameFormat, GetManagerJob(worker)) : Resources.Field_Survivor_DefaultName;
-        [GeneratedRegex(@".*/([^/]+)_(C|UC|R|VR|SR|UR)_([a-z]+_)?T(\d+)(?:\..*)?$", RegexOptions.IgnoreCase, "en-US")]
+        [GeneratedRegex(@".*/([^/]+)_(C|UC|R|VR|SR|UR)_([a-z]+_)?T(\d+)(?:\..*)?$", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
         private static partial Regex SurvivorAssetNameRegex();
     }
 }

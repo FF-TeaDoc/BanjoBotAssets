@@ -17,7 +17,6 @@
  */
 using BanjoBotAssets.Aes;
 using BanjoBotAssets.Artifacts;
-using BanjoBotAssets.Artifacts.Models;
 using BanjoBotAssets.Config;
 using BanjoBotAssets.Exporters;
 using BanjoBotAssets.PostExporters;
@@ -30,7 +29,7 @@ using System.Diagnostics;
 
 namespace BanjoBotAssets
 {
-    internal sealed class AssetExportService : BackgroundService
+    internal sealed partial class AssetExportService : BackgroundService
     {
         private readonly ILogger<AssetExportService> logger;
         private readonly IHostApplicationLifetime lifetime;
@@ -122,6 +121,9 @@ namespace BanjoBotAssets
             // from cache or from an external API.
             await DecryptGameFilesAsync(cancellationToken);
 
+            // load virtual paths
+            LoadVirtualPaths();
+
             // load the type mappings CUE4Parse uses to parse UE structures
             await LoadMappingsAsync(cancellationToken);
 
@@ -199,11 +201,17 @@ namespace BanjoBotAssets
             }
         }
 
+        private void LoadVirtualPaths()
+        {
+            var numPaths = provider.LoadVirtualPaths();
+            logger.LogInformation(Resources.Status_LoadedVirtualPaths, numPaths);
+        }
+
         private async Task LoadMappingsAsync(CancellationToken cancellationToken)
         {
             logger.LogInformation(Resources.Status_LoadingMappings);
 
-            if (provider.GameName.Equals("FortniteGame", StringComparison.OrdinalIgnoreCase))
+            if (provider.InternalGameName.Equals("FortniteGame", StringComparison.OrdinalIgnoreCase))
             {
                 provider.MappingsContainer = typeMappingsProviderFactory.Create();
             }
@@ -333,15 +341,16 @@ namespace BanjoBotAssets
             }
         }
 
+        [GeneratedRegex(@"/Athena/|\.[^.]+(?<!\.uasset|\.bin)$|\.o\.[^.]+$", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        private static partial Regex ExcludedAssetPathRegex();
+
         private void OfferFileListToExporters()
         {
             logger.LogInformation(Resources.Status_AnalyzingFileList);
 
             foreach (var (name, file) in provider.Files)
             {
-                if (name.Contains("/Athena/", StringComparison.OrdinalIgnoreCase) ||
-                    (!name.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase) &&
-                     !name.EndsWith(".bin", StringComparison.OrdinalIgnoreCase)))
+                if (ExcludedAssetPathRegex().IsMatch(name))
                 {
                     continue;
                 }

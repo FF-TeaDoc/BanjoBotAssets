@@ -15,12 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
-namespace BanjoBotAssets.PostExporters
-{
-    internal interface IPostExporter : IAssetCounter
-    {
-        Task ProcessExportsAsync(ExportedAssets exportedAssets, IList<ExportedRecipe> exportedRecipes, CancellationToken cancellationToken = default);
+using System.Diagnostics.CodeAnalysis;
 
-        int AssetsLoaded { get; }
+namespace BanjoBotAssets.Json
+{
+    public sealed class AlterationSlot
+    {
+        public int RequiredLevel { get; set; }
+        [DisallowNull]
+        public string[][]? Alterations { get; set; }
     }
 }

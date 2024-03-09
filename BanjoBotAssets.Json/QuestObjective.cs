@@ -18,10 +18,10 @@
 using Newtonsoft.Json;
 using System.Diagnostics.CodeAnalysis;
 
-namespace BanjoBotAssets.Artifacts.Models
+namespace BanjoBotAssets.Json
 {
     [JsonObject(ItemNullValueHandling = NullValueHandling.Ignore)]
-    internal sealed class QuestObjective
+    public sealed class QuestObjective
     {
         [DisallowNull]
         public string? BackendName { get; set; }

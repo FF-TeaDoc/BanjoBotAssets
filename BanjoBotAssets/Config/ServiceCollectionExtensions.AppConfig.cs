@@ -66,6 +66,10 @@ namespace BanjoBotAssets.Extensions
                     config.GetRequiredSection("PerformanceOptions").Bind(options);
                 });
 
+            // post-exporter for crafting recipes
+            services
+                .AddTransient<IPostExporter, CraftingRecipesPostExporter>();
+
             // post-exporter for image files and its options
             services
                 .AddTransient<IPostExporter, ImageFilesPostExporter>()
@@ -101,11 +105,6 @@ namespace BanjoBotAssets.Extensions
                     options.Merge = scopeOptions.Value.Merge;
                     config.GetRequiredSection("ExportedSchematics").Bind(options);
                 });
-
-            // JSON contract resolvers used by the artifact generators
-            services
-                .AddSingleton<IgnoreImagePathsContractResolver>()
-                .AddSingleton<NullToEmptyStringContractResolver>();
 
             return services;
         }
@@ -161,7 +160,7 @@ namespace BanjoBotAssets.Extensions
                          directory: gameDirectory,
                          searchOption: SearchOption.TopDirectoryOnly,
                          isCaseInsensitive: true,
-                         versions: new VersionContainer(EGame.GAME_UE5_LATEST),
+                         versions: new VersionContainer(EGame.GAME_UE5_4),
                          assetLogPath: perfOptions.Value.AssetLogPath);
 
                      provider.Initialize();

@@ -15,16 +15,15 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
-using System.Diagnostics.CodeAnalysis;
 
-namespace BanjoBotAssets.Artifacts.Models
+namespace BanjoBotAssets.UExports
 {
-    internal sealed class XPRewardLevel
+    public enum EFortAbilityCostSource : byte
     {
-        public int TotalRequiredXP { get; set; }
-        public bool IsMajorReward { get; set; }
-
-        [DisallowNull]
-        public QuestReward[] Rewards { get; set; } = null!;
+        Stamina = 0,
+        Durability = 1,
+        AmmoMagazine = 2,
+        AmmoPrimary = 3,
+        Item = 4,
     }
 }

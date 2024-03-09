@@ -15,16 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
-using System.Diagnostics.CodeAnalysis;
+using CUE4Parse.UE4.Assets.Utils;
+using CUE4Parse.UE4.Objects.GameplayTags;
 
-namespace BanjoBotAssets.Artifacts.Models
+namespace BanjoBotAssets.UExports
 {
-    internal sealed class QuestReward
+    [StructFallback]
+    public class FInheritedTagContainer
     {
-        [DisallowNull]
-        public string? Item { get; set; }
-        public int Quantity { get; set; }
-        public bool Hidden { get; set; }
-        public bool Selectable { get; set; }
+        public FGameplayTagContainer CombinedTags { get; set; }
+        public FGameplayTagContainer Added { get; set; }
+        public FGameplayTagContainer Removed { get; set; }
+
+        public FInheritedTagContainer(FStructFallback fallback)
+        {
+            CombinedTags = fallback.GetOrDefault<FGameplayTagContainer>(nameof(CombinedTags));
+            Added = fallback.GetOrDefault<FGameplayTagContainer>(nameof(Added));
+            Removed = fallback.GetOrDefault<FGameplayTagContainer>(nameof(Removed));
+        }
     }
 }

@@ -15,14 +15,24 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
-using System.Diagnostics.CodeAnalysis;
+using CUE4Parse.UE4.Assets.Utils;
 
-namespace BanjoBotAssets.Artifacts.Models
+namespace BanjoBotAssets.UExports
 {
-    internal sealed class ItemRatingTier
+    /// <summary>
+    /// Like <see cref="FGameplayEffectApplicationInfo"/>, but the reference to the <see cref="GameplayEffect"/>
+    /// is a <see cref="FPackageIndex"/> instead of a <see cref="FSoftObjectPath"/>.
+    /// </summary>
+    [StructFallback]
+    public class FGameplayEffectApplicationInfoHard
     {
-        public int FirstLevel { get; set; }
-        [DisallowNull]
-        public float[]? Ratings { get; set; }
+        public FPackageIndex GameplayEffect { get; set; }
+        public float Level { get; set; }
+
+        public FGameplayEffectApplicationInfoHard(FStructFallback fallback)
+        {
+            GameplayEffect = fallback.GetOrDefault<FPackageIndex>(nameof(GameplayEffect));
+            Level = fallback.GetOrDefault<float>(nameof(Level));
+        }
     }
 }

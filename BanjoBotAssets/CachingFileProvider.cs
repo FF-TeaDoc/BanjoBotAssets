@@ -16,13 +16,10 @@
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
 using CUE4Parse.FileProvider;
+using CUE4Parse.FileProvider.Objects;
 using CUE4Parse.UE4.Versions;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace BanjoBotAssets
 {
@@ -53,7 +50,15 @@ namespace BanjoBotAssets
             OpenAssetLog();
         }
 
-        public CachingFileProvider(AssetCache cache, ILogger<CachingFileProvider> logger, DirectoryInfo mainDirectory, List<DirectoryInfo> extraDirectories, SearchOption searchOption, bool isCaseInsensitive = false, VersionContainer? versions = null, string? assetLogPath = null) : base(mainDirectory, extraDirectories, searchOption, isCaseInsensitive, versions)
+        public CachingFileProvider(
+            AssetCache cache,
+            ILogger<CachingFileProvider> logger,
+            DirectoryInfo mainDirectory,
+            DirectoryInfo[] extraDirectories,
+            SearchOption searchOption,
+            bool isCaseInsensitive = false,
+            VersionContainer? versions = null,
+            string? assetLogPath = null) : base(mainDirectory, extraDirectories, searchOption, isCaseInsensitive, versions)
         {
             this.cache = cache;
             this.logger = logger;

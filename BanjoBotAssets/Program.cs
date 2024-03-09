@@ -27,7 +27,7 @@ await Host.CreateDefaultBuilder(args)
 #if DEBUG
     .UseEnvironment("Development")
 #endif
-    .UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location))
+    .UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? throw new InvalidOperationException("Null content root"))
     .ConfigureLogging(logging =>
     {
         logging

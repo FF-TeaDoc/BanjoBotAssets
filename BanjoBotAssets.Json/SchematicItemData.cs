@@ -18,10 +18,10 @@
 using Newtonsoft.Json;
 using System.Diagnostics.CodeAnalysis;
 
-namespace BanjoBotAssets.Artifacts.Models
+namespace BanjoBotAssets.Json
 {
     [NamedItemData("Schematic")]
-    internal sealed class SchematicItemData : NamedItemData
+    public sealed class SchematicItemData : NamedItemData
     {
         public string? Category { get; set; }
         public string? EvoType { get; set; }
@@ -33,12 +33,14 @@ namespace BanjoBotAssets.Artifacts.Models
         public RangedWeaponStats? RangedWeaponStats { get; set; }
         public MeleeWeaponStats? MeleeWeaponStats { get; set; }
         public TrapStats? TrapStats { get; set; }
+
+        public Dictionary<string, int>? CraftingCost { get; set; }
     }
 
     /// <summary>
     /// Only included for ranged weapon schematics
     /// </summary>
-    internal sealed class RangedWeaponStats
+    public sealed class RangedWeaponStats
     {
         public string? AmmoType { get; set; }
         public int? BulletsPerCartridge { get; set; }
@@ -66,7 +68,7 @@ namespace BanjoBotAssets.Artifacts.Models
     /// <summary>
     /// Only included if <see cref="ReloadTime"/> is nonzero
     /// </summary>
-    internal struct ReloadInfo
+    public struct ReloadInfo
     {
         public float ReloadTime { get; set; }
         public string ReloadType { get; set; }
@@ -78,7 +80,7 @@ namespace BanjoBotAssets.Artifacts.Models
     /// <summary>
     /// Only included if <see cref="MaxChargeTime"/> is nonzero
     /// </summary>
-    internal struct ChargeInfo
+    public struct ChargeInfo
     {
         public float FullChargeDurabilityPerUse { get; set; }
         public int MaxAmmoCostPerFire { get; set; }
@@ -97,7 +99,7 @@ namespace BanjoBotAssets.Artifacts.Models
     /// <summary>
     /// Only included if <see cref="HeatCapacity"/> is nonzero
     /// </summary>
-    internal struct OverheatingInfo
+    public struct OverheatingInfo
     {
         /// <summary>
         /// OverheatingMaxValue
@@ -129,7 +131,7 @@ namespace BanjoBotAssets.Artifacts.Models
         public float OverheatedCooldownDelay { get; set; }
     }
 
-    internal struct DamageRange
+    public struct DamageRange
     {
         public float Range { get; set; }
         public float Damage { get; set; }
@@ -141,7 +143,7 @@ namespace BanjoBotAssets.Artifacts.Models
     /// <summary>
     /// Only included for melee weapon schematics (i.e. RngMax is zero)
     /// </summary>
-    internal sealed class MeleeWeaponStats
+    public sealed class MeleeWeaponStats
     {
         /// <summary>
         /// RangeVSEnemies
@@ -163,7 +165,7 @@ namespace BanjoBotAssets.Artifacts.Models
     /// <summary>
     /// Only included for trap schematics
     /// </summary>
-    internal sealed class TrapStats
+    public sealed class TrapStats
     {
         public float? ArmTime { get; set; }
         public float? FireDelay { get; set; }

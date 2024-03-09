@@ -15,8 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
-using BanjoBotAssets.Artifacts.Models;
-
 namespace BanjoBotAssets.Exporters.UObjects
 {
     internal sealed class TeamPerkExporter : UObjectExporter
@@ -31,7 +29,7 @@ namespace BanjoBotAssets.Exporters.UObjects
         {
             Interlocked.Increment(ref assetsLoaded);
             var grantedAbilityKit = await asset.GetOrDefault<FSoftObjectPath>("GrantedAbilityKit").LoadAsync(provider);
-            namedItemData.Description = await abilityDescription.GetAsync(grantedAbilityKit, this) ?? $"<{Resources.Field_NoDescription}>";
+            namedItemData.Description = await abilityDescription.GetForPerkAbilityKitAsync(grantedAbilityKit, this) ?? $"<{Resources.Field_NoDescription}>";
 
             if (grantedAbilityKit.GetResourceObjectPath("IconBrush") is string path)
             {

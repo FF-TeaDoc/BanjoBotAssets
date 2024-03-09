@@ -15,6 +15,8 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
+using CUE4Parse.FN.Structs.GA;
+using CUE4Parse.UE4.Assets.Objects.Properties;
 using CUE4Parse.UE4.Objects.Engine;
 
 namespace BanjoBotAssets.Exporters.Helpers
@@ -28,7 +30,7 @@ namespace BanjoBotAssets.Exporters.Helpers
             this.logger = logger;
         }
 
-        public async Task<string?> GetAsync(UObject grantedAbilityKit, IAssetCounter assetCounter)
+        public async Task<string?> GetForPerkAbilityKitAsync(UObject grantedAbilityKit, IAssetCounter assetCounter)
         {
             var (markup, cdo) = await GetMarkupAsync(grantedAbilityKit, assetCounter);
 
@@ -41,6 +43,32 @@ namespace BanjoBotAssets.Exporters.Helpers
                 await GetTokensAsync(cdo, tokens, assetCounter);
 
             return FormatMarkup(markup, tokens);
+        }
+
+        public async Task<string?> GetForActiveAbilityAsync(UBlueprintGeneratedClass gameplayAbilityClass, IAssetCounter assetCounter)
+        {
+            var gameplayAbilityCdo = await gameplayAbilityClass.ClassDefaultObject.LoadAsync();
+            assetCounter.CountAssetLoaded();
+
+            return await GetForActiveAbilityAsync(gameplayAbilityClass, gameplayAbilityCdo, assetCounter);
+        }
+
+        public async Task<string?> GetForActiveAbilityAsync(UBlueprintGeneratedClass gameplayAbilityClass, UObject gameplayAbilityCdo, IAssetCounter assetCounter)
+        {
+            // TODO: use gameplayAbilityClass to substitute the correct token values
+            var tooltip = gameplayAbilityCdo.GetOrDefault<UBlueprintGeneratedClass?>("ToolTip");
+
+            if (tooltip == null)
+            {
+                return null;
+            }
+
+            assetCounter.CountAssetLoaded();
+
+            var tooltipCdo = await tooltip.ClassDefaultObject.LoadAsync();
+            assetCounter.CountAssetLoaded();
+
+            return tooltipCdo.GetOrDefault<FText>("Description").Text;
         }
 
         private static async Task<(string? markup, UObject? tooltip)> GetMarkupAsync(UObject grantedAbilityKit, IAssetCounter assetCounter)
@@ -128,23 +156,8 @@ namespace BanjoBotAssets.Exporters.Helpers
 
         private float? GetValueFromCurveTable(FStructFallback tokenDef, string property)
         {
-            var row = tokenDef.Get<FStructFallback>(property);
-
-            var multiplier = row.Get<float>("Value");
-            var curveTableRow = row.Get<FCurveTableRowHandle>("Curve");
-
-            // find the right FName to use, what a pain
-            var rowNameStr = curveTableRow.RowName.Text;
-            var curveName = curveTableRow.CurveTable?.RowMap.Keys.FirstOrDefault(k => k.Text == rowNameStr) ?? default;
-
-            if (curveName.IsNone)
-            {
-                logger.LogWarning(Resources.Warning_MissingCurveTableRow, rowNameStr);
-                return null;
-            }
-
-            var curve = curveTableRow.CurveTable.FindCurve(curveName);
-            return curve?.Eval(1) * multiplier;
+            var row = tokenDef.Get<FScalableFloat>(property);
+            return row.Curve.RowName.IsNone ? null : row.GetScaledValue(logger);
         }
 
         private static string ApplyFormatting(float value, FName formatting)
@@ -164,7 +177,7 @@ namespace BanjoBotAssets.Exporters.Helpers
                     return value.ToString("0.#", CultureInfo.CurrentCulture);
                 case "TTT_List::NewEnumerator4":
                     // Subtract From 1
-                    return ((1 - value) * 100).ToString("0.#", CultureInfo.CurrentCulture);
+                    return Math.Abs((1 - value) * 100).ToString("0.#", CultureInfo.CurrentCulture);
                 case "TTT_List::NewEnumerator5":
                     // Distance to Tiles
                     return (value / 512).ToString("0.###", CultureInfo.CurrentCulture);
@@ -216,19 +229,16 @@ namespace BanjoBotAssets.Exporters.Helpers
             return value;
         }
 
-        private static readonly Regex tokenRegex = TokenRegex();
-        private static readonly Regex tagRegex = TagRegex();
-
         private static string FormatMarkup(string markup, Dictionary<string, string> tokens)
         {
-            markup = tokenRegex.Replace(markup, match => tokens.GetValueOrDefault(match.Groups[1].Value, match.Value));
-            return tagRegex.Replace(markup, match => match.Groups[1].Value);
+            markup = TokenRegex().Replace(markup, match => tokens.GetValueOrDefault(match.Groups[1].Value, match.Value));
+            return TagRegex().Replace(markup, match => match.Groups[1].Value);
         }
 
-        [GeneratedRegex(@"\[(Ability\.Line\d+)\]", RegexOptions.IgnoreCase, "en-US")]
+        [GeneratedRegex(@"\[(Ability\.Line\d+)\]", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
         private static partial Regex TokenRegex();
 
-        [GeneratedRegex("<(?:\\w+)>([^<]*)</>")]
+        [GeneratedRegex("<(?:\\w+)>([^<]*)</>", RegexOptions.Singleline | RegexOptions.CultureInvariant)]
         private static partial Regex TagRegex();
     }
 }
