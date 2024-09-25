@@ -22,58 +22,39 @@ using BanjoBotAssets.Exporters;
 using BanjoBotAssets.PostExporters;
 using CUE4Parse.Encryption.Aes;
 using CUE4Parse.UE4.Objects.Core.Misc;
-using CUE4Parse.UE4.Versions;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace BanjoBotAssets
 {
-    internal sealed partial class AssetExportService : BackgroundService
-    {
-        private readonly ILogger<AssetExportService> logger;
-        private readonly IHostApplicationLifetime lifetime;
-        private readonly List<IExporter> exportersToRun;
-        private readonly IOptions<GameFileOptions> options;
-        private readonly IEnumerable<IAesProvider> aesProviders;
-        private readonly IAesCacheUpdater aesCacheUpdater;
-        private readonly IEnumerable<IExportArtifact> exportArtifacts;
-        private readonly AbstractVfsFileProvider provider;
-        private readonly ITypeMappingsProviderFactory typeMappingsProviderFactory;
-        private readonly IOptions<ScopeOptions> scopeOptions;
-        private readonly IEnumerable<IPostExporter> allPostExporters;
-
-        private readonly ConcurrentDictionary<string, byte> failedAssets = new();
-
-        public AssetExportService(ILogger<AssetExportService> logger,
+    internal sealed partial class AssetExportService(
+        ILogger<AssetExportService> logger,
             IHostApplicationLifetime lifetime,
             IEnumerable<IExporter> allExporters,
-            IOptions<GameFileOptions> options,
             IEnumerable<IAesProvider> aesProviders,
             IAesCacheUpdater aesCacheUpdater,
             IEnumerable<IExportArtifact> exportArtifacts,
             AbstractVfsFileProvider provider,
             ITypeMappingsProviderFactory typeMappingsProviderFactory,
             IOptions<ScopeOptions> scopeOptions,
-            IEnumerable<IPostExporter> allPostExporters)
+            IEnumerable<IPostExporter> allPostExporters,
+            LanguageProvider languageProvider) : BackgroundService
+    {
+        private readonly List<IExporter> exportersToRun = MakeExportersToRun(allExporters, scopeOptions);
+        private readonly ConcurrentDictionary<string, byte> failedAssets = new();
+
+        private static List<IExporter> MakeExportersToRun(IEnumerable<IExporter> allExporters, IOptions<ScopeOptions> scopeOptions)
         {
-            this.logger = logger;
-            this.lifetime = lifetime;
-            this.options = options;
-            this.aesProviders = aesProviders;
-            this.aesCacheUpdater = aesCacheUpdater;
-            this.exportArtifacts = exportArtifacts;
-            this.provider = provider;
-            this.typeMappingsProviderFactory = typeMappingsProviderFactory;
-            this.scopeOptions = scopeOptions;
-            this.allPostExporters = allPostExporters;
-            exportersToRun = new(allExporters);
+            var result = allExporters.ToList();
 
             if (!string.IsNullOrWhiteSpace(scopeOptions.Value.Only))
             {
                 var wanted = scopeOptions.Value.Only.Split(',');
-                exportersToRun.RemoveAll(e => !wanted.Contains(e.GetType().Name, StringComparer.OrdinalIgnoreCase));
+                result.RemoveAll(e => !wanted.Contains(e.GetType().Name, StringComparer.OrdinalIgnoreCase));
             }
+
+            return result;
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -97,17 +78,8 @@ namespace BanjoBotAssets
             }
         }
 
-        private struct AssetLoadingStats
+        private readonly record struct AssetLoadingStats(int AssetsLoaded, TimeSpan Elapsed)
         {
-            public int AssetsLoaded { get; set; }
-            public TimeSpan Elapsed { get; set; }
-
-            public AssetLoadingStats(int assetsLoaded, TimeSpan elapsed)
-            {
-                AssetsLoaded = assetsLoaded;
-                Elapsed = elapsed;
-            }
-
             public static AssetLoadingStats operator +(AssetLoadingStats a, AssetLoadingStats b)
             {
                 return new(a.AssetsLoaded + b.AssetsLoaded, a.Elapsed + b.Elapsed);
@@ -364,17 +336,8 @@ namespace BanjoBotAssets
 
         private void LoadLocalization(CancellationToken cancellationToken)
         {
-            var language = GetLocalizationLanguage();
-            logger.LogInformation(Resources.Status_LoadingLocalization, language.ToString());
-            provider.LoadLocalization(language, cancellationToken);
-        }
-
-        private ELanguage GetLocalizationLanguage()
-        {
-            if (!string.IsNullOrEmpty(options.Value.ELanguage) && Enum.TryParse<ELanguage>(options.Value.ELanguage, out var result))
-                return result;
-
-            return Enum.Parse<ELanguage>(Resources.ELanguage);
+            logger.LogInformation(Resources.Status_LoadingLocalization, languageProvider.Language.ToString());
+            provider.LoadLocalization(languageProvider.Language, cancellationToken);
         }
     }
 }

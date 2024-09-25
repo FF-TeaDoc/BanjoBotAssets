@@ -16,31 +16,27 @@
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
 using CUE4Parse.FN.Enums.FortniteGame;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 
 namespace BanjoBotAssets.Exporters.UObjects
 {
-    internal abstract class UObjectExporter : UObjectExporter<UObject>
+    internal abstract class UObjectExporter(IExporterContext services) : UObjectExporter<UObject>(services)
     {
-        protected UObjectExporter(IExporterContext services) : base(services) { }
     }
 
-    internal abstract class UObjectExporter<TAsset> : UObjectExporter<TAsset, NamedItemData>
+    internal abstract class UObjectExporter<TAsset>(IExporterContext services) : UObjectExporter<TAsset, NamedItemData>(services)
         where TAsset : UObject
     {
-        protected UObjectExporter(IExporterContext services) : base(services)
-        {
-        }
     }
 
-    internal abstract class UObjectExporter<TAsset, TItemData> : BaseExporter
+
+    internal abstract class UObjectExporter<TAsset, TItemData>(IExporterContext services) : BaseExporter(services)
         where TAsset : UObject
         where TItemData : NamedItemData, new()
     {
         private int numToProcess, processedSoFar;
         private readonly ConcurrentDictionary<string, byte> failedAssets = new();
-
-        protected UObjectExporter(IExporterContext services) : base(services) { }
 
         protected abstract string Type { get; }
 
@@ -69,7 +65,7 @@ namespace BanjoBotAssets.Exporters.UObjects
             numToProcess = assetPaths.Count;
             processedSoFar = 0;
 
-            Report(progress, string.Format(CultureInfo.CurrentCulture, Resources.FormatString_Status_ExportingGroup, Type));
+            Report(progress, string.Format(CultureInfo.CurrentCulture, FormatStrings.ExportingGroup, Type));
 
             var assetsToProcess = scopeOptions.Value.Limit != null ? assetPaths.Take((int)scopeOptions.Value.Limit) : assetPaths;
             var opts = new ParallelOptions { CancellationToken = cancellationToken, MaxDegreeOfParallelism = performanceOptions.Value.MaxParallelism };
@@ -95,9 +91,13 @@ namespace BanjoBotAssets.Exporters.UObjects
 
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        if (pkg?.GetExport(0) is TAsset asset)
+                        if (pkg?.GetExportOrNull(file.NameWithoutExtension, StringComparison.OrdinalIgnoreCase) is TAsset asset)
                         {
                             uobject = asset;
+                        }
+                        else if (pkg?.GetExportOrNull(file.NameWithoutExtension + "_C", StringComparison.OrdinalIgnoreCase) is TAsset assetC)
+                        {
+                            uobject = assetC;
                         }
                         else
                         {
@@ -111,7 +111,9 @@ namespace BanjoBotAssets.Exporters.UObjects
                         {
                             var pkg = await provider.LoadPackageAsync(file);
                             cancellationToken.ThrowIfCancellationRequested();
-                            uobject = pkg.GetExport(0) as TAsset;
+                            
+                            uobject = pkg.GetExportOrNull(file.NameWithoutExtension, StringComparison.OrdinalIgnoreCase) as TAsset ??
+                                pkg.GetExport(file.NameWithoutExtension + "_C", StringComparison.OrdinalIgnoreCase) as TAsset;
                         }
                         catch (Exception ex)
                         {
@@ -129,8 +131,8 @@ namespace BanjoBotAssets.Exporters.UObjects
                     }
 
                     var templateId = $"{Type}:{uobject.Name}";
-                    var displayName = uobject.GetOrDefault<FText>("DisplayName")?.Text ?? $"<{uobject.Name}>";
-                    var description = uobject.GetOrDefault<FText>("Description")?.Text;
+                    var displayName = uobject.GetOrDefault<FText>("ItemName")?.Text ?? uobject.GetOrDefault<FText>("DisplayName")?.Text ?? $"<{uobject.Name}>";
+                    var description = uobject.GetOrDefault<FText>("ItemDescription")?.Text ?? uobject.GetOrDefault<FText>("Description")?.Text;
                     var isInventoryLimitExempt = !uobject.GetOrDefault("bInventorySizeLimited", true);
 
                     var itemData = new TItemData
@@ -142,13 +144,13 @@ namespace BanjoBotAssets.Exporters.UObjects
                         Description = description,
                         IsInventoryLimitExempt = isInventoryLimitExempt,
                     };
-
-                    if (uobject.GetOrDefault<EFortItemTier>("Tier") is EFortItemTier tier && tier != default)
+                    
+                    if (uobject.GetOrDefaultFromDataList<EFortItemTier>("Tier") is EFortItemTier tier && tier != default)
                     {
                         itemData.Tier = (int)tier;
                     }
 
-                    if (uobject.GetOrDefault<EFortRarity>("Rarity") is EFortRarity rarity && rarity != default)
+                    if (uobject.GetOrDefault("Rarity", EFortRarity.Uncommon) is EFortRarity rarity && rarity != EFortRarity.Uncommon)
                     {
                         itemData.Rarity = rarity.GetNameText().Text;
                     }
@@ -157,10 +159,10 @@ namespace BanjoBotAssets.Exporters.UObjects
 
                     var imagePaths = new Dictionary<ImageType, string>();
 
-                    if (uobject.GetSoftAssetPath("SmallPreviewImage") is string smallPreviewPath)
+                    if (uobject.GetSoftAssetPathFromDataList("Icon") is string smallPreviewPath)
                         imagePaths.Add(ImageType.SmallPreview, smallPreviewPath);
 
-                    if (uobject.GetSoftAssetPath("LargePreviewImage") is string largePreviewPath)
+                    if (uobject.GetSoftAssetPathFromDataList("LargeIcon") is string largePreviewPath)
                         imagePaths.Add(ImageType.LargePreview, largePreviewPath);
 
                     if (!await ExportAssetAsync(uobject, itemData, imagePaths))

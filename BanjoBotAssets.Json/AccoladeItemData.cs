@@ -15,15 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
-using CUE4Parse.FN.Exports.FortniteGame.NoProperties;
+using System.Diagnostics.CodeAnalysis;
 
-namespace BanjoBotAssets.Exporters.UObjects
+namespace BanjoBotAssets.Json
 {
-    internal sealed class IngredientExporter(IExporterContext services) : UObjectExporter<UFortIngredientItemDefinition>(services)
+    [NamedItemData("Accolades")]
+    public sealed class AccoladeItemData : NamedItemData
     {
-        protected override string Type => "Ingredient";
-
-        protected override bool InterestedInAsset(string name) =>
-            name.Contains("Items/Ingredients/Ingredient_", StringComparison.OrdinalIgnoreCase);
+        [DisallowNull]
+        public int? AccoladeXP { get; set; }
     }
 }

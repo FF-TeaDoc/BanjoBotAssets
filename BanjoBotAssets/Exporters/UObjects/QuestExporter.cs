@@ -17,12 +17,10 @@
  */
 namespace BanjoBotAssets.Exporters.UObjects
 {
-    internal sealed partial class QuestExporter : UObjectExporter<UFortQuestItemDefinition, QuestItemData>
+    internal sealed partial class QuestExporter(IExporterContext services) : UObjectExporter<UFortQuestItemDefinition, QuestItemData>(services)
     {
         private string? questRewardsPath, objectiveStatTablePath, homebaseRatingDifficultyMappingPath;
         private UDataTable? questRewardsTable, objectiveStatTable, homebaseRatingDifficultyMappingTable;
-
-        public QuestExporter(IExporterContext services) : base(services) { }
 
         protected override string Type => "Quest";
 
@@ -45,6 +43,7 @@ namespace BanjoBotAssets.Exporters.UObjects
                 homebaseRatingDifficultyMappingPath = name;
             }
 
+            // TODO: use AssetRegistry to exclude non-quest assets, e.g. /Game/Items/Quests/Summer2019/SummerQuest_2019_Ice.SummerQuest_2019_Ice
             return name.Contains("/Content/Quests/", StringComparison.OrdinalIgnoreCase);
         }
 
@@ -78,10 +77,10 @@ namespace BanjoBotAssets.Exporters.UObjects
                         var row = o.ObjectiveStatHandle.RowName;
                         qo.ZonePowerLevel = TryGetZonePowerLevelCondition(row.Text);
 
-                        if (qo.ZonePowerLevel != null)
+                        if (qo.ZonePowerLevel is int powerLevel)
                         {
-                            qo.Description = qo.Description.Replace("[UIRating]", qo.ZonePowerLevel.ToString(), StringComparison.OrdinalIgnoreCase);
-                            qo.HudShortDescription = qo.HudShortDescription.Replace("[UIRating]", qo.ZonePowerLevel.ToString(), StringComparison.OrdinalIgnoreCase);
+                            qo.Description = qo.Description.Replace("[UIRating]", powerLevel.ToString(exportCulture), StringComparison.OrdinalIgnoreCase);
+                            qo.HudShortDescription = qo.HudShortDescription.Replace("[UIRating]", powerLevel.ToString(exportCulture), StringComparison.OrdinalIgnoreCase);
                         }
                     }
 
@@ -89,7 +88,7 @@ namespace BanjoBotAssets.Exporters.UObjects
                 }
             }
 
-            namedItemData.Objectives = objectives.ToArray();
+            namedItemData.Objectives = [.. objectives];
 
             // "category" property may be lowercased
             var category = asset.Category ?? asset.GetOrDefault<FDataTableRowHandle?>("category");
@@ -115,7 +114,7 @@ namespace BanjoBotAssets.Exporters.UObjects
                     }
                 }
             }
-            namedItemData.Rewards = rewards.ToArray();
+            namedItemData.Rewards = [.. rewards];
 
             return Task.FromResult(true);
         }

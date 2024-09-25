@@ -1,4 +1,4 @@
-﻿/* Copyright 2023 Tara "Dino" Cassatt
+﻿/* Copyright 2024 Tara "Dino" Cassatt
  * 
  * This file is part of BanjoBotAssets.
  * 
@@ -15,13 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with BanjoBotAssets.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-// TODO: remove SoloForTestingAttribute
-
-namespace BanjoBotAssets.Extensions
+namespace System.Runtime.CompilerServices
 {
-    [AttributeUsage(AttributeTargets.Class)]
-    internal sealed class SoloForTestingAttribute : Attribute
+    /// <summary>
+    /// This is required for C# 9.0 init-only properties to work in .NET Standard 2.0.
+    /// </summary>
+    internal class IsExternalInit
     {
     }
 }

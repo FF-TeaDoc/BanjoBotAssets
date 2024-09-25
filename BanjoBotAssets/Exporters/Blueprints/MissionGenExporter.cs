@@ -19,10 +19,8 @@ using CUE4Parse.UE4.Objects.Engine;
 
 namespace BanjoBotAssets.Exporters.Blueprints
 {
-    internal sealed class MissionGenExporter : BlueprintExporter
+    internal sealed class MissionGenExporter(IExporterContext services) : BlueprintExporter(services)
     {
-        public MissionGenExporter(IExporterContext services) : base(services) { }
-
         protected override string Type => "MissionGen";
 
         protected override string DisplayNameProperty => "MissionName";
@@ -41,7 +39,7 @@ namespace BanjoBotAssets.Exporters.Blueprints
             }
 
             var loadingScreenConfig = await classDefaultObject.GetInheritedOrDefaultAsync<FStructFallback>("LoadingScreenConfig", this);
-            if (loadingScreenConfig?.GetSoftAssetPath("BackgroundImage") is string bgImage)
+            if (loadingScreenConfig?.GetSoftAssetPath("BackgroundImage") is string bgImage && !string.IsNullOrEmpty(bgImage))
             {
                 imagePaths.Add(ImageType.LoadingScreen, bgImage);
             }

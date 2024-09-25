@@ -58,7 +58,7 @@ namespace BanjoBotAssets.Exporters.Groups
     /// is then called to produce the exported item for each asset in the group, by combining the
     /// common fields with each variant's parsed name.</para>
     /// </remarks>
-    internal abstract class GroupExporter<TAsset, TParsedName, TFields, TItemData> : BaseExporter
+    internal abstract class GroupExporter<TAsset, TParsedName, TFields, TItemData>(IExporterContext services) : BaseExporter(services)
         where TAsset : UObject
         where TParsedName : BaseParsedItemName
         where TFields : BaseItemGroupFields, new()
@@ -66,10 +66,6 @@ namespace BanjoBotAssets.Exporters.Groups
     {
         private int numToProcess, processedSoFar;
         private readonly ConcurrentDictionary<string, byte> failedAssets = new();
-
-        protected GroupExporter(IExporterContext services) : base(services)
-        {
-        }
 
         /// <summary>
         /// The asset type, which appears before the colon in the asset's template ID.
@@ -104,7 +100,7 @@ namespace BanjoBotAssets.Exporters.Groups
             var uniqueAssets = assetPaths.ToLookup(path => ParseAssetName(path) == null ? null : path, StringComparer.OrdinalIgnoreCase);
             numToProcess = uniqueAssets.Count;
 
-            Report(progress, string.Format(CultureInfo.CurrentCulture, Resources.FormatString_Status_ExportingGroup, Type));
+            Report(progress, string.Format(CultureInfo.CurrentCulture, FormatStrings.ExportingGroup, Type));
 
             var assetsToProcess = scopeOptions.Value.Limit != null ? uniqueAssets.Take((int)scopeOptions.Value.Limit) : uniqueAssets;
             var opts = new ParallelOptions { CancellationToken = cancellationToken, MaxDegreeOfParallelism = performanceOptions.Value.MaxParallelism };
@@ -275,11 +271,11 @@ namespace BanjoBotAssets.Exporters.Groups
         {
             return Task.FromResult(new TFields() with
             {
-                Description = asset.GetOrDefault<FText>("Description")?.Text,
-                DisplayName = asset.GetOrDefault<FText>("DisplayName")?.Text ?? $"<{grouping.Key}>",
+                Description = asset.GetOrDefault<FText>("ItemDescription")?.Text ?? asset.GetOrDefault<FText>("Description")?.Text,
+                DisplayName = asset.GetOrDefault<FText>("ItemName")?.Text ?? asset.GetOrDefault<FText>("DisplayName")?.Text ?? $"<{grouping.Key}>",
                 SubType = null,
-                SmallPreviewImagePath = asset.GetSoftAssetPath("SmallPreviewImage"),
-                LargePreviewImagePath = asset.GetSoftAssetPath("LargePreviewImage"),
+                SmallPreviewImagePath = asset.GetSoftAssetPathFromDataList("Icon"),
+                LargePreviewImagePath = asset.GetSoftAssetPathFromDataList("LargeIcon"),
                 IsPermanent = asset.GetOrDefault<FDataTableRowHandle>("SacrificeRecipe") is null or { RowName.IsNone: true } or { DataTable: null },
                 IsInventoryLimitExempt = !asset.GetOrDefault("bInventorySizeLimited", true),
         });
@@ -342,11 +338,8 @@ namespace BanjoBotAssets.Exporters.Groups
     /// don't have any additional properties that need to be populated.
     /// </summary>
     /// <typeparam name="TAsset">The type of the asset.</typeparam>
-    internal abstract class GroupExporter<TAsset> : GroupExporter<TAsset, BaseParsedItemName, BaseItemGroupFields, NamedItemData>
+    internal abstract class GroupExporter<TAsset>(IExporterContext services) : GroupExporter<TAsset, BaseParsedItemName, BaseItemGroupFields, NamedItemData>(services)
         where TAsset : UObject
     {
-        protected GroupExporter(IExporterContext services) : base(services)
-        {
-        }
     }
 }

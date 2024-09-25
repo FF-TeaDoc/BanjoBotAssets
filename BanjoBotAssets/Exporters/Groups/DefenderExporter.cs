@@ -17,7 +17,7 @@
  */
 namespace BanjoBotAssets.Exporters.Groups
 {
-    internal sealed partial class DefenderExporter : GroupExporter<UFortHeroType>
+    internal sealed partial class DefenderExporter(IExporterContext services) : GroupExporter<UFortHeroType>(services)
     {
         protected override string Type => "Defender";
 
@@ -25,8 +25,6 @@ namespace BanjoBotAssets.Exporters.Groups
             name.Contains("Defenders/DID_", StringComparison.OrdinalIgnoreCase);
 
         private static readonly Regex defenderAssetNameRegex = DefenderAssetNameRegex();
-
-        public DefenderExporter(IExporterContext services) : base(services) { }
 
         protected override BaseParsedItemName? ParseAssetName(string name)
         {
@@ -53,7 +51,7 @@ namespace BanjoBotAssets.Exporters.Groups
                 var i = category.LastIndexOf('_');
                 var weapon = category[(i + 1)..];
 
-                subType = string.Format(CultureInfo.CurrentCulture, Resources.FormatString_Field_Defender_NameFormat, weapon);
+                subType = string.Format(CultureInfo.CurrentCulture, FormatStrings.DefenderName, weapon);
             }
             else
             {
@@ -65,11 +63,11 @@ namespace BanjoBotAssets.Exporters.Groups
 
         protected override string GetDisplayName(BaseParsedItemName parsedName, UFortHeroType primaryAsset, BaseItemGroupFields fields)
         {
-            if (primaryAsset.DisplayName is FText ft)
+            if (primaryAsset.ItemName is FText ft)
                 return ft.Text;
 
             var rarity = GetRarity(parsedName, primaryAsset, fields);
-            return string.Format(CultureInfo.CurrentCulture, Resources.FormatString_Field_Defender_DisplayNameFormat, rarity.GetNameText(), fields.SubType ?? Resources.Field_Defender_DefaultName);
+            return string.Format(CultureInfo.CurrentCulture, FormatStrings.DefenderDisplayName, rarity.GetNameText(), fields.SubType ?? Resources.Field_Defender_DefaultName);
         }
 
         [GeneratedRegex(".*/([^/]+)_(C|UC|R|VR|SR|UR)_T(\\d+)(?:\\..*)?$", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]

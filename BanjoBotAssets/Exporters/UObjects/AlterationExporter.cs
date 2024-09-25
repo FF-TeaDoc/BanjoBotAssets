@@ -17,10 +17,8 @@
  */
 namespace BanjoBotAssets.Exporters.UObjects
 {
-    internal sealed class AlterationExporter : UObjectExporter<UFortItemDefinition>
+    internal sealed class AlterationExporter(IExporterContext services) : UObjectExporter<UFortItemDefinition>(services)
     {
-        public AlterationExporter(IExporterContext services) : base(services) { }
-
         protected override string Type => "Alteration";
 
         protected override bool InterestedInAsset(string name) =>
@@ -29,7 +27,7 @@ namespace BanjoBotAssets.Exporters.UObjects
 
         protected override Task<bool> ExportAssetAsync(UFortItemDefinition asset, NamedItemData namedItemData, Dictionary<ImageType, string> imagePaths)
         {
-            namedItemData.DisplayName = asset.Description?.Text ?? $"<Alteration:{asset.Name}>";
+            namedItemData.DisplayName = asset.ItemDescription?.Text ?? $"<Alteration:{asset.Name}>";
             namedItemData.Description = null;
             return Task.FromResult(true);
         }

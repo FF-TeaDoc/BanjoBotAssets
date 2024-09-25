@@ -20,14 +20,10 @@ using System.Collections.Concurrent;
 
 namespace BanjoBotAssets.Exporters.Blueprints
 {
-    internal abstract class BlueprintExporter : BaseExporter
+    internal abstract class BlueprintExporter(IExporterContext services) : BaseExporter(services)
     {
         private int numToProcess, processedSoFar;
         private readonly ConcurrentDictionary<string, byte> failedAssets = new();
-
-        protected BlueprintExporter(IExporterContext services) : base(services)
-        {
-        }
 
         protected abstract string Type { get; }
         protected abstract string DisplayNameProperty { get; }
@@ -55,7 +51,7 @@ namespace BanjoBotAssets.Exporters.Blueprints
             numToProcess = assetPaths.Count;
             processedSoFar = 0;
 
-            Report(progress, string.Format(CultureInfo.CurrentCulture, Resources.FormatString_Status_ExportingGroup, Type));
+            Report(progress, string.Format(CultureInfo.CurrentCulture, FormatStrings.ExportingGroup, Type));
 
             var assetsToProcess = scopeOptions.Value.Limit != null ? assetPaths.Take((int)scopeOptions.Value.Limit) : assetPaths;
             var opts = new ParallelOptions { CancellationToken = cancellationToken, MaxDegreeOfParallelism = performanceOptions.Value.MaxParallelism };
@@ -87,6 +83,13 @@ namespace BanjoBotAssets.Exporters.Blueprints
 
                     Interlocked.Increment(ref assetsLoaded);
                     var cdo = await bpClass.ClassDefaultObject.LoadAsync();
+
+                    if (cdo == null)
+                    {
+                        logger.LogWarning(Resources.Warning_CouldNotLoadAsset, bpClassPath);
+                        failedAssets.TryAdd(file.PathWithoutExtension, 0);
+                        return;
+                    }
 
                     var displayName = (await cdo.GetInheritedOrDefaultAsync<FText>(DisplayNameProperty, this))?.Text ?? $"<{bpClass.Name}>";
                     var description = DescriptionProperty == null ? null : (await cdo.GetInheritedOrDefaultAsync<FText>(DescriptionProperty, this))?.Text;

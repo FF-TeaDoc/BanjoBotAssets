@@ -32,7 +32,7 @@ namespace BanjoBotAssets.Exporters.Groups
         public SchematicItemGroupFields() : this("", null, null, "", "", "", "", "", "") { }
     }
 
-    internal sealed partial class SchematicExporter : GroupExporter<UObject, ParsedSchematicName, SchematicItemGroupFields, SchematicItemData>
+    internal sealed partial class SchematicExporter(IExporterContext services) : GroupExporter<UObject, ParsedSchematicName, SchematicItemGroupFields, SchematicItemData>(services)
     {
         private readonly Dictionary<string, string> craftingResultPaths = new(StringComparer.OrdinalIgnoreCase);
         private string? craftingPath, alterationGroupPath, slotDefsPath, slotLoadoutsPath, meleeWeaponsPath, rangedWeaponsPath, trapsPath, durabilityPath, namedExclusionsPath;
@@ -91,6 +91,9 @@ namespace BanjoBotAssets.Exporters.Groups
                     durabilityPath = name;
                     break;
             }
+
+            if (name.Contains("/songs/", StringComparison.OrdinalIgnoreCase))
+                return false;
 
             return name.Contains("/SID_", StringComparison.OrdinalIgnoreCase) || name.Contains("Schematics/Ammo/Ammo_", StringComparison.OrdinalIgnoreCase);
         }
@@ -214,8 +217,8 @@ namespace BanjoBotAssets.Exporters.Groups
                 return result;
             }
 
-            var displayName = weaponOrTrapDef.DisplayName?.Text ?? $"<{grouping.Key}>";
-            var description = weaponOrTrapDef.Description?.Text;
+            var displayName = weaponOrTrapDef.ItemName?.Text ?? $"<{grouping.Key}>";
+            var description = weaponOrTrapDef.ItemDescription?.Text;
             var (category, subType) = CategoryAndSubTypeFromTags(weaponOrTrapDef.GameplayTags);
             var alterationSlotsLoadoutRow = weaponOrTrapDef.GetOrDefault<FName>("AlterationSlotsLoadoutRow").Text;
             var ammoType = await AmmoTypeFromPathAsync(weaponOrTrapDef.GetOrDefault<FSoftObjectPath>("AmmoData"));
@@ -234,8 +237,8 @@ namespace BanjoBotAssets.Exporters.Groups
                 WeaponOrTrapStatRowPrefix = statRowPrefix,
                 CraftingRowPrefix = craftingRowPrefix,
                 TriggerType = triggerType,
-                SmallPreviewImagePath = weaponOrTrapDef.GetSoftAssetPath("SmallPreviewImage"),
-                LargePreviewImagePath = weaponOrTrapDef.GetSoftAssetPath("LargePreviewImage"),
+                SmallPreviewImagePath = weaponOrTrapDef.GetSoftAssetPathFromDataList("Icon"),
+                LargePreviewImagePath = weaponOrTrapDef.GetSoftAssetPathFromDataList("LargeIcon"),
             };
         }
 
@@ -299,10 +302,6 @@ namespace BanjoBotAssets.Exporters.Groups
             return rowName;
         }
 
-        public SchematicExporter(IExporterContext services) : base(services)
-        {
-        }
-
         [GeneratedRegex(@"^(?:Weapon\.(?:Ranged|Melee\.(?:Edged|Blunt|Piercing))|Trap(?=\.(?:Ceiling|Floor|Wall)))\.([^.]+)", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
         private static partial Regex SchematicSubTypeRegex();
 
@@ -349,7 +348,7 @@ namespace BanjoBotAssets.Exporters.Groups
             return await cachedAmmoTypesFromPaths.GetOrAdd(ammoDataPath.AssetPathName.Text, static async (path, provider) =>
             {
                 var asset = await provider.LoadObjectAsync<UFortAmmoItemDefinition>(path);
-                if (asset.DisplayName?.Text is string str)
+                if (asset.ItemName?.Text is string str)
                 {
                     var i = str.IndexOf(':');
                     return str[(i + 1)..].Trim();
@@ -459,7 +458,7 @@ namespace BanjoBotAssets.Exporters.Groups
                     }
                 }
 
-                itemData.AlterationSlots = convertedSlots.ToArray();
+                itemData.AlterationSlots = [.. convertedSlots];
             }
 
             return Task.FromResult(true);

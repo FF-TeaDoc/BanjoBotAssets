@@ -22,7 +22,7 @@ namespace BanjoBotAssets.Exporters
 {
     internal abstract class BaseExporter : IExporter
     {
-        protected readonly List<string> assetPaths = new();
+        protected readonly List<string> assetPaths = [];
         protected int assetsLoaded;
 
         protected readonly AbstractVfsFileProvider provider;
@@ -30,6 +30,7 @@ namespace BanjoBotAssets.Exporters
         protected readonly IOptions<PerformanceOptions> performanceOptions;
         protected readonly IOptions<ScopeOptions> scopeOptions;
         protected readonly AbilityDescription abilityDescription;
+        protected readonly CultureInfo exportCulture;
 
         protected BaseExporter(IExporterContext services)
         {
@@ -38,6 +39,7 @@ namespace BanjoBotAssets.Exporters
             scopeOptions = services.ScopeOptions;
             logger = services.LoggerFactory.CreateLogger(GetType());
             abilityDescription = services.AbilityDescription;
+            exportCulture = services.ExportCulture;
         }
 
         public int AssetsLoaded => assetsLoaded;

@@ -21,12 +21,10 @@ using CUE4Parse.UE4.Objects.Engine;
 
 namespace BanjoBotAssets.Exporters.UObjects
 {
-    internal sealed class AbilityExporter : UObjectExporter<UObject, AbilityItemData>
+    internal sealed class AbilityExporter(IExporterContext services) : UObjectExporter<UObject, AbilityItemData>(services)
     {
         private string? gadgetPath;
         private Dictionary<string, FStructFallback>? gadgetTable;
-
-        public AbilityExporter(IExporterContext services) : base(services) { }
 
         protected override string Type => "Ability";
 
@@ -37,7 +35,7 @@ namespace BanjoBotAssets.Exporters.UObjects
                 gadgetPath = name;
             }
 
-            return name.Contains("/Actives/", StringComparison.OrdinalIgnoreCase) && name.Contains("/Kit_", StringComparison.OrdinalIgnoreCase);
+            return (name.Contains("/Actives/", StringComparison.OrdinalIgnoreCase) || name.Contains("/Perks/", StringComparison.OrdinalIgnoreCase)) && name.Contains("/Kit_", StringComparison.OrdinalIgnoreCase);
         }
 
         public override async Task ExportAssetsAsync(IProgress<ExportProgress> progress, IAssetOutput output, CancellationToken cancellationToken)
@@ -83,8 +81,12 @@ namespace BanjoBotAssets.Exporters.UObjects
 
             if (gadgets == null)
             {
-                // not a hero ability
-                return false;
+                // not a hero ability, might be a hero perk
+                var itemDescription = await abilityDescription.GetForPerkAbilityKitAsync(asset, this);
+                if (itemDescription is null)// wasnt a hero perk
+                    return false;
+                namedItemData.Description ??= itemDescription;
+                return true;
             }
 
             if (gadgets.Length != 1)
@@ -143,6 +145,11 @@ namespace BanjoBotAssets.Exporters.UObjects
             Interlocked.Increment(ref assetsLoaded);
             var gaCdo = await ga.ClassDefaultObject.LoadAsync();
 
+            if (gaCdo == null)
+            {
+                return;
+            }
+
             var abilityCosts = gaCdo.GetOrDefault<FFortAbilityCost[]>("AbilityCosts");
             var staminaCost = abilityCosts.SingleOrDefault(ac => ac.CostSource == EFortAbilityCostSource.Stamina);
             namedItemData.EnergyCost ??= staminaCost?.CostValue?.GetScaledValue(logger);
@@ -153,12 +160,12 @@ namespace BanjoBotAssets.Exporters.UObjects
             Interlocked.Increment(ref assetsLoaded);
             var cooldownCdo = await cooldownEffect.ClassDefaultObject.LoadAsync();
 
-            var dm = cooldownCdo.GetOrDefault<FStructFallback>("DurationMagnitude");
-            var sfm = dm.GetOrDefault<FScalableFloat>("ScalableFloatMagnitude");
-            namedItemData.CooldownSeconds ??= sfm.GetScaledValue(logger);
+            var dm = cooldownCdo?.GetOrDefault<FStructFallback>("DurationMagnitude");
+            var sfm = dm?.GetOrDefault<FScalableFloat>("ScalableFloatMagnitude");
+            namedItemData.CooldownSeconds ??= sfm?.GetScaledValue(logger);
 
             // load tooltip
-            namedItemData.Description ??= await abilityDescription.GetForActiveAbilityAsync(ga, gaCdo, this);
+            namedItemData.Description ??= await AbilityDescription.GetForActiveAbilityAsync(ga, gaCdo, this);
         }
 
         private async Task LoadFromGameplayEffectAsync(AbilityItemData namedItemData, FGameplayEffectApplicationInfoHard geaih)
@@ -169,7 +176,7 @@ namespace BanjoBotAssets.Exporters.UObjects
 
             Interlocked.Increment(ref assetsLoaded);
             var cdo = await ge.ClassDefaultObject.LoadAsync();
-            var tags = cdo.GetOrDefault<FInheritedTagContainer?>("InheritableOwnedTagsContainer");
+            var tags = cdo?.GetOrDefault<FInheritedTagContainer?>("InheritableOwnedTagsContainer");
             namedItemData.GrantedTag ??= tags?.Added.First(t => t.ToString().StartsWith("Granted.Ability.", StringComparison.OrdinalIgnoreCase)).ToString();
         }
     }
