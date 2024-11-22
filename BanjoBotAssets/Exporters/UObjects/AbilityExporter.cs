@@ -82,10 +82,11 @@ namespace BanjoBotAssets.Exporters.UObjects
             if (gadgets == null)
             {
                 // not a hero ability, might be a hero perk
-                var itemDescription = await abilityDescription.GetForPerkAbilityKitAsync(asset, this);
+                var (itemDescription, itemDescriptionLocalized) = await abilityDescription.GetForPerkAbilityKitAsync(asset, this);
                 if (itemDescription is null)// wasnt a hero perk
                     return false;
                 namedItemData.Description ??= itemDescription;
+                namedItemData.DescriptionLocalized ??= itemDescriptionLocalized;
                 return true;
             }
 

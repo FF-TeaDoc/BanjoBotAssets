@@ -19,10 +19,10 @@
 
 namespace BanjoBotAssets.Exporters.Groups
 {
-    internal sealed record SurvivorItemGroupFields(string DisplayName, string? Description, string? SubType,
-        string? Personality) : BaseItemGroupFields(DisplayName, Description, SubType)
+    internal sealed record SurvivorItemGroupFields(string DisplayName, string? Description, string DisplayNameLocalized, string? DescriptionLocalized, string? SubType,
+        string? Personality) : BaseItemGroupFields(DisplayName, DisplayNameLocalized, Description, DescriptionLocalized, SubType)
     {
-        public SurvivorItemGroupFields() : this("", null, null, null) { }
+        public SurvivorItemGroupFields() : this("", null, "", null, null, null) { }
     }
 
     internal sealed partial class SurvivorExporter(IExporterContext services) : GroupExporter<UFortWorkerType, BaseParsedItemName, SurvivorItemGroupFields, SurvivorItemData>(services)
@@ -56,16 +56,28 @@ namespace BanjoBotAssets.Exporters.Groups
         {
             var result = await base.ExtractCommonFieldsAsync(asset, grouping);
             var subType = asset.bIsManager ? GetManagerJob(asset) : null;
-            var displayName = asset.ItemName?.Text ?? MakeSurvivorDisplayName(asset);
+            string? displayName = MakeSurvivorDisplayName(asset);
+            string? displayNameLocalized = displayName;
+            var displayNameObj = asset.ItemName;
+            logger.LogInformation($"{displayNameObj}");
+            if (displayNameObj != null)
+            {
+                var displayNameTH = displayNameObj?.TextHistory as FTextHistory.Base;
+                displayName = displayNameTH?.SourceString;
+                displayNameLocalized = displayNameTH?.LocalizedString;
+            }
+
             var personality = asset.FixedPersonalityTag.GameplayTags is { Length: 1 }
                 ? asset.FixedPersonalityTag.GameplayTags[0].ToString().Split('.')[^1]
                 : null;
-            return result with { SubType = subType, DisplayName = displayName, Personality = personality };
+            return result with { SubType = subType, DisplayName = displayName, DisplayNameLocalized = displayNameLocalized, Personality = personality };
         }
 
         protected override Task<bool> ExportAssetAsync(BaseParsedItemName parsed, UFortWorkerType primaryAsset, SurvivorItemGroupFields fields, string path, SurvivorItemData itemData)
         {
             itemData.Personality = fields.Personality;
+            itemData.DescriptionLocalized = fields.DescriptionLocalized;
+            itemData.DisplayNameLocalized = fields.DisplayNameLocalized;
             return Task.FromResult(true);
         }
 

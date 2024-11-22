@@ -313,7 +313,7 @@ namespace BanjoBotAssets
             }
         }
 
-        [GeneratedRegex(@"/Athena/|\.[^.]+(?<!\.uasset|\.bin)$|\.o\.[^.]+$", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        [GeneratedRegex(@"\.[^.]+(?<!\.uasset|\.bin)$|\.o\.[^.]+$", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
         private static partial Regex ExcludedAssetPathRegex();
 
         private void OfferFileListToExporters()

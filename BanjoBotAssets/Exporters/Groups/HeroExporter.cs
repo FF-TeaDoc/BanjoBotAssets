@@ -20,12 +20,13 @@ using CUE4Parse.Utils;
 
 namespace BanjoBotAssets.Exporters.Groups
 {
-    internal sealed record HeroItemGroupFields(string DisplayName, string? Description, string? SubType,
+    internal sealed record HeroItemGroupFields(string DisplayName, string DisplayNameLocalized, string? Description, string? DescriptionLocalized, string? SubType,
         string? HeroPerkName, string HeroPerk, string HeroPerkDescription, string? CommanderPerkName, string CommanderPerk, string CommanderPerkDescription,
-        PerkRequirement? HeroPerkRequirement, string[] HeroAbilities)
-        : BaseItemGroupFields(DisplayName, Description, SubType)
+        PerkRequirement? HeroPerkRequirement, string[] HeroAbilities, string CommanderPerkLocalized, string CommanderPerkDescriptionLocalized,
+        string HeroPerkLocalized, string HeroPerkDescriptionLocalized)
+        : BaseItemGroupFields(DisplayName, DisplayNameLocalized, Description, DescriptionLocalized, SubType)
     {
-        public HeroItemGroupFields() : this("", null, null, null, "", "", null, "", "", null, []) { }
+        public HeroItemGroupFields() : this("", "", null, null, null, null, "", "", null, "", "", null, [], "", "", "", "") { }
     }
 
     internal sealed partial class HeroExporter(IExporterContext services) : GroupExporter<UFortHeroType, BaseParsedItemName, HeroItemGroupFields, HeroItemData>(services)
@@ -83,8 +84,8 @@ namespace BanjoBotAssets.Exporters.Groups
             var hgd = asset.HeroGameplayDefinition;
 
             // hero/commander perk
-            var (heroPerkName, heroPerk, heroPerkDesc, heroPerkRequirement) = await GetPerkAsync(hgd, "HeroPerk");
-            var (commanderPerkName, commanderPerk, commanderPerkDesc, _) = await GetPerkAsync(hgd, "CommanderPerk");
+            var (heroPerkName, heroPerk, heroPerkLocalized, heroPerkDesc, heroPerkDescLocalized, heroPerkRequirement) = await GetPerkAsync(hgd, "HeroPerk");
+            var (commanderPerkName, commanderPerk, commanderPerkLocalized, commanderPerkDesc, commanderPerkDescLocalized, _) = await GetPerkAsync(hgd, "CommanderPerk");
 
             // abilities
             var tierAbilityKits = hgd?.GetOrDefault<FStructFallback[]>("TierAbilityKits");
@@ -94,10 +95,14 @@ namespace BanjoBotAssets.Exporters.Groups
             {
                 HeroPerkName = heroPerkName,
                 HeroPerk = heroPerk,
+                HeroPerkLocalized = heroPerkLocalized,
                 HeroPerkDescription = heroPerkDesc,
+                HeroPerkDescriptionLocalized = heroPerkDescLocalized,
                 HeroPerkRequirement = heroPerkRequirement,
                 CommanderPerkName = commanderPerkName,
                 CommanderPerk = commanderPerk,
+                CommanderPerkLocalized = commanderPerkLocalized,
+                CommanderPerkDescriptionLocalized = commanderPerkDescLocalized,
                 CommanderPerkDescription = commanderPerkDesc,
                 SubType = GetHeroClass(asset.GameplayTags),
                 HeroAbilities = heroAbilities,
@@ -116,24 +121,43 @@ namespace BanjoBotAssets.Exporters.Groups
             return base.GetRarity(parsedName, primaryAsset, fields);
         }
 
-        private async Task<(string? perkName, string displayName, string description, PerkRequirement? requirement)> GetPerkAsync(UObject? gameplayDefinition, string perkProperty)
+        private async Task<(string? perkName, string displayName, string displayNameLocalized, string description, string descriptionLocalized, PerkRequirement? requirement)> GetPerkAsync(UObject? gameplayDefinition, string perkProperty)
         {
             var perk = gameplayDefinition?.GetOrDefault<FStructFallback>(perkProperty);
             if (perk == null)
-                return (null, $"<{Resources.Field_Hero_NoGrantedAbility}>", $"<{Resources.Field_NoDescription}>", null);
+                return (null, $"<{Resources.Field_Hero_NoGrantedAbility}>", $"<{Resources.Field_Hero_NoGrantedAbility}>", $"<{Resources.Field_NoDescription}>", $"<{Resources.Field_NoDescription}>", null);
 
             Interlocked.Increment(ref assetsLoaded);
             var perkName = perk.GetOrDefault<FSoftObjectPath>("GrantedAbilityKit").AssetPathName.Text.Split(".")[^1];
             var grantedAbilityKit = await perk.GetOrDefault<FSoftObjectPath>("GrantedAbilityKit").LoadAsync(provider);
-            var displayName = grantedAbilityKit.GetOrDefault<FText>("ItemName")?.Text ?? grantedAbilityKit.GetOrDefault<FText>("DisplayName")?.Text ?? $"<{grantedAbilityKit.Name ?? Resources.Field_Hero_NoGrantedAbility}>";
-            var description = await abilityDescription.GetForPerkAbilityKitAsync(grantedAbilityKit, this) ?? $"<{Resources.Field_NoDescription}>";
+
+            var displayName = $"<{grantedAbilityKit.Name ?? Resources.Field_Hero_NoGrantedAbility}>";
+            var displayNameLocalized = displayName;
+            string? description = $"<{Resources.Field_NoDescription}>";
+            string? descriptionLocalized = description;
+            (description, descriptionLocalized) = await abilityDescription.GetForPerkAbilityKitAsync(grantedAbilityKit, this);
+
+            FText? displayNameObj = grantedAbilityKit.GetOrDefault<FText>("ItemName") ?? grantedAbilityKit.GetOrDefault<FText>("DisplayName");
+            FText? descriptionObj = grantedAbilityKit.GetOrDefault<FText>("ItemDescription") ?? grantedAbilityKit.GetOrDefault<FText>("Description");
+            FTextHistory.Base? displayNameTH;
+            if (displayNameObj != null)
+            {
+                displayNameTH = displayNameObj?.TextHistory as FTextHistory.Base;
+                displayName = displayNameTH?.SourceString;
+                displayNameLocalized = displayNameTH?.LocalizedString;
+            }
 
             PerkRequirement? requirement = null;
             if (perk.GetOrDefault<FStructFallback>("RequiredCommanderTagQuery") is FStructFallback commanderTagQuery)
             {
+                var perkDescriptionObj = perk.GetOrDefault<FText>("CommanderRequirementsText");
+                var perkDescriptionTH = perkDescriptionObj?.TextHistory as FTextHistory.Base;
+                var perkDescription = perkDescriptionTH.SourceString;
+                var perkDescriptionLocalized = perkDescriptionTH.LocalizedString;
                 requirement = new PerkRequirement
                 {
-                    Description = perk.GetOrDefault<FText>("CommanderRequirementsText")?.Text ?? "",
+                    Description = perkDescription,
+                    DescriptionLocalized = perkDescriptionLocalized
                 };
 
                 // instead of parsing the TagDictionary and numeric QueryTokenStream, parse the textual AutoDescription
@@ -155,7 +179,7 @@ namespace BanjoBotAssets.Exporters.Groups
                 }
             }
 
-            return (perkName, displayName, description, requirement);
+            return (perkName, displayName, displayNameLocalized, description, descriptionLocalized, requirement);
         }
 
         [GeneratedRegex("^\\s*(?:ANY|ALL)\\(\\s*(?<tag>[a-z0-9.]+)(?:\\s*,\\s*(?<tag>[a-z0-9.]+))*\\s*\\)\\s*$", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
@@ -205,10 +229,14 @@ namespace BanjoBotAssets.Exporters.Groups
         {
             itemData.HeroPerkName = fields.HeroPerkName;
             itemData.HeroPerk = fields.HeroPerk;
+            itemData.HeroPerkLocalized = fields.HeroPerkLocalized;
             itemData.HeroPerkDescription = fields.HeroPerkDescription;
+            itemData.HeroPerkDescriptionLocalized = fields.HeroPerkDescriptionLocalized;
             itemData.CommanderPerkName = fields.CommanderPerkName;
             itemData.CommanderPerk = fields.CommanderPerk;
+            itemData.CommanderPerkLocalized = fields.CommanderPerkLocalized;
             itemData.CommanderPerkDescription = fields.CommanderPerkDescription;
+            itemData.CommanderPerkDescriptionLocalized = fields.CommanderPerkDescriptionLocalized;
             itemData.HeroAbilities = fields.HeroAbilities;
             itemData.HeroPerkRequirement = fields.HeroPerkRequirement;
 

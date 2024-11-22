@@ -27,12 +27,20 @@ namespace BanjoBotAssets.Json
         [DisallowNull]
         public string? HeroPerk { get; set; }
         [DisallowNull]
+        public string? HeroPerkLocalized { get; set; }
+        [DisallowNull]
         public string? HeroPerkDescription { get; set; }
+        [DisallowNull]
+        public string? HeroPerkDescriptionLocalized { get; set; }
         public string? CommanderPerkName { get; set; }
         [DisallowNull]
         public string? CommanderPerk { get; set; }
         [DisallowNull]
+        public string? CommanderPerkLocalized { get; set; }
+        [DisallowNull]
         public string? CommanderPerkDescription { get; set; }
+        [DisallowNull]
+        public string? CommanderPerkDescriptionLocalized { get; set; }
         public string? UnlocksTeamPerk { get; set; }
         public PerkRequirement? HeroPerkRequirement { get; set; }
 
@@ -47,6 +55,7 @@ namespace BanjoBotAssets.Json
     public sealed class PerkRequirement
     {
         public string Description { get; set; } = "";
+        public string DescriptionLocalized { get; set; } = "";
         /// <summary>
         /// One or more tags indicating granted abilities that must be present on the commander for this perk to be active.
         /// </summary>

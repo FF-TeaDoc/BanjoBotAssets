@@ -33,8 +33,11 @@ namespace BanjoBotAssets.Json
         public string? AssetPath { get; set; }
         [JsonProperty(Order = 3), DisallowNull]
         public string? DisplayName { get; set; }
+        [JsonProperty(Order = 4), DisallowNull]
+        public string? DisplayNameLocalized { get; set; }
         public string? Description { get; set; }
-        [JsonProperty(Order = 4)]
+        public string? DescriptionLocalized { get; set; }
+        [JsonProperty(Order = 5)]
         public string? SubType { get; set; }
         public string? Rarity { get; set; }
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]

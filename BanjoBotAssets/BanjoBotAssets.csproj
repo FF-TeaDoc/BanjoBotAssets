@@ -55,7 +55,7 @@
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="Roslynator.Analyzers" Version="4.10.0">
+		<PackageReference Include="Roslynator.Analyzers" Version="4.12.6">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
@@ -71,6 +71,9 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\BanjoBotAssets.SourceGenerators\BanjoBotAssets.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\CUE4Parse\CUE4Parse\CUE4Parse.csproj" />
+		<ProjectReference Include="..\..\CUE4Parse\CUE4Parse-Conversion\CUE4Parse-Conversion.csproj" />
+		<ProjectReference Include="..\..\CUE4Parse-FortniteTypes\CUE4Parse-FortniteTypes.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

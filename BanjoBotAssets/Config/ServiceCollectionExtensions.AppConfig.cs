@@ -20,6 +20,7 @@ using BanjoBotAssets.Artifacts;
 using BanjoBotAssets.Config;
 using BanjoBotAssets.Exporters;
 using BanjoBotAssets.PostExporters;
+using CUE4Parse.Compression;
 using CUE4Parse.UE4.Versions;
 using Microsoft.Extensions.Options;
 using Serilog;
@@ -152,9 +153,10 @@ namespace BanjoBotAssets.Extensions
                          directory: gameDirectory,
                          searchOption: SearchOption.TopDirectoryOnly,
                          isCaseInsensitive: true,
-                         versions: new VersionContainer(EGame.GAME_UE5_4),
+                         versions: new VersionContainer(EGame.GAME_UE5_5),
                          assetLogPath: perfOptions.Value.AssetLogPath);
-
+                     OodleInit();
+                     ZLibInit();
                      provider.Initialize();
                      return provider;
                  }));
@@ -198,6 +200,28 @@ namespace BanjoBotAssets.Extensions
                 });
 
             return services;
+        }
+
+        public static void OodleInit()
+        {
+            string oodlePath = OodleHelper.OODLE_DLL_NAME;
+            if (!File.Exists(oodlePath))
+            {
+                OodleHelper.DownloadOodleDll(oodlePath);
+            }
+
+            OodleHelper.Initialize(oodlePath);
+        }
+
+        public static void ZLibInit()
+        {
+            string dllPath = ZlibHelper.DLL_NAME;
+            if (!File.Exists(dllPath))
+            {
+                ZlibHelper.DownloadDll(dllPath);
+            }
+
+            ZlibHelper.Initialize(dllPath);
         }
     }
 }

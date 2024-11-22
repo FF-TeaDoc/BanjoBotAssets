@@ -8,7 +8,7 @@ namespace BanjoBotAssets.Exporters.UObjects
 {
     internal sealed class ConsumableAccountItemExporter : UObjectExporter
     {
-        public ConsumableAccountItemExporter(IExporterContext services) : base(services) { } 
+        public ConsumableAccountItemExporter(IExporterContext services) : base(services) { }
 
         protected override string Type => "ConsumableAccountItem";
 

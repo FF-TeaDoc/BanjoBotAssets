@@ -111,7 +111,7 @@ namespace BanjoBotAssets.Exporters.UObjects
                         {
                             var pkg = await provider.LoadPackageAsync(file);
                             cancellationToken.ThrowIfCancellationRequested();
-                            
+
                             uobject = pkg.GetExportOrNull(file.NameWithoutExtension, StringComparison.OrdinalIgnoreCase) as TAsset ??
                                 pkg.GetExport(file.NameWithoutExtension + "_C", StringComparison.OrdinalIgnoreCase) as TAsset;
                         }
@@ -131,9 +131,27 @@ namespace BanjoBotAssets.Exporters.UObjects
                     }
 
                     var templateId = $"{Type}:{uobject.Name}";
-                    var displayName = uobject.GetOrDefault<FText>("ItemName")?.Text ?? uobject.GetOrDefault<FText>("DisplayName")?.Text ?? $"<{uobject.Name}>";
-                    var description = uobject.GetOrDefault<FText>("ItemDescription")?.Text ?? uobject.GetOrDefault<FText>("Description")?.Text;
+                    FText? displayNameObj = uobject.GetOrDefault<FText>("ItemName") ?? uobject.GetOrDefault<FText>("DisplayName");// ?? $"<{uobject.Name}>";
+                    FText? descriptionObj = uobject.GetOrDefault<FText>("ItemDescription") ?? uobject.GetOrDefault<FText>("Description");
                     var isInventoryLimitExempt = !uobject.GetOrDefault("bInventorySizeLimited", true);
+
+                    var displayName = $"<{uobject.Name}>";
+                    var displayNameLocalized = string.Empty;
+                    if (displayNameObj != null)
+                    {
+                        var displayNameTH = displayNameObj?.TextHistory as FTextHistory.Base;
+                        displayName = displayNameTH?.SourceString;
+                        displayNameLocalized = displayNameTH?.LocalizedString;
+                    }
+
+                    var description = string.Empty;
+                    var descriptionLocalized = string.Empty;
+                    if (descriptionObj != null)
+                    {
+                        var descriptionTH = descriptionObj?.TextHistory as FTextHistory.Base;
+                        description = descriptionTH?.SourceString;
+                        descriptionLocalized = descriptionTH?.LocalizedString;
+                    }
 
                     var itemData = new TItemData
                     {
@@ -141,10 +159,12 @@ namespace BanjoBotAssets.Exporters.UObjects
                         Name = uobject.Name,
                         Type = Type,
                         DisplayName = displayName.Trim(),
+                        DisplayNameLocalized = displayNameLocalized.Trim(),
                         Description = description,
+                        DescriptionLocalized = descriptionLocalized,
                         IsInventoryLimitExempt = isInventoryLimitExempt,
                     };
-                    
+
                     if (uobject.GetOrDefaultFromDataList<EFortItemTier>("Tier") is EFortItemTier tier && tier != default)
                     {
                         itemData.Tier = (int)tier;

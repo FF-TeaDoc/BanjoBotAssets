@@ -23,12 +23,12 @@ namespace BanjoBotAssets.Exporters.Helpers
 {
     internal sealed partial class AbilityDescription(ILogger<AbilityDescription> logger)
     {
-        public async Task<string?> GetForPerkAbilityKitAsync(UObject grantedAbilityKit, IAssetCounter assetCounter)
+        public async Task<(string?, string?)> GetForPerkAbilityKitAsync(UObject grantedAbilityKit, IAssetCounter assetCounter)
         {
             var (markup, cdo) = await GetMarkupAsync(grantedAbilityKit, assetCounter);
 
             if (markup == null)
-                return null;
+                return (null, null);
 
             var tokens = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -69,13 +69,13 @@ namespace BanjoBotAssets.Exporters.Helpers
             return tooltipCdo?.GetOrDefault<FText>("Description").Text;
         }
 
-        private static async Task<(string? markup, UObject? tooltip)> GetMarkupAsync(UObject grantedAbilityKit, IAssetCounter assetCounter)
+        private static async Task<(FText? markup, UObject? tooltip)> GetMarkupAsync(UObject grantedAbilityKit, IAssetCounter assetCounter)
         {
             var tooltipDescription = grantedAbilityKit?.GetOrDefault<FText>("TooltipDescription");
             if (tooltipDescription != null)
             {
                 // hi, Chaos Agent and/or Fennix
-                return (tooltipDescription.Text, null);
+                return (tooltipDescription, null);
             }
             var tooltip = grantedAbilityKit?.GetOrDefault<UBlueprintGeneratedClass>("Tooltip");
             if (tooltip == null)
@@ -84,7 +84,7 @@ namespace BanjoBotAssets.Exporters.Helpers
             }
             var cdo = await tooltip.ClassDefaultObject.LoadAsync();
             assetCounter.CountAssetLoaded();
-            return (cdo == null ? null : (await cdo.GetInheritedOrDefaultAsync<FText>("Description", assetCounter))?.Text, cdo);
+            return (cdo == null ? null : (await cdo.GetInheritedOrDefaultAsync<FText>("Description", assetCounter)), cdo);
         }
 
         //const string LEVEL = "F_Level_8_E09B5737400C3B2BE4EB12A65A011266";
@@ -227,10 +227,14 @@ namespace BanjoBotAssets.Exporters.Helpers
             return value;
         }
 
-        private static string FormatMarkup(string markup, Dictionary<string, string> tokens)
+        private static (string markuped, string markupLocalized) FormatMarkup(FText markup, Dictionary<string, string> tokens)
         {
-            markup = TokenRegex().Replace(markup, match => tokens.GetValueOrDefault(match.Groups[1].Value, match.Value));
-            return TagRegex().Replace(markup, match => match.Groups[1].Value);
+            var markupTH = markup?.TextHistory as FTextHistory.Base;
+            var markupString = TokenRegex().Replace(markupTH.SourceString, match => tokens.GetValueOrDefault(match.Groups[1].Value, match.Value));
+            var markupStringLocalized = TokenRegex().Replace(markupTH.LocalizedString, match => tokens.GetValueOrDefault(match.Groups[1].Value, match.Value));
+            var markuped = TagRegex().Replace(markupString, match => match.Groups[1].Value);
+            var markupLocalized = TagRegex().Replace(markupStringLocalized, match => match.Groups[1].Value);
+            return (markuped, markupLocalized);
         }
 
         [GeneratedRegex(@"\[(Ability\.Line\d+)\]", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]

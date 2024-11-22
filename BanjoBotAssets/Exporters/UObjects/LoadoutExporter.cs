@@ -8,7 +8,7 @@ namespace BanjoBotAssets.Exporters.UObjects
 {
     internal sealed class LoadoutExporter : UObjectExporter
     {
-        public LoadoutExporter(IExporterContext services) : base(services) { } 
+        public LoadoutExporter(IExporterContext services) : base(services) { }
 
         protected override string Type => "CampaignHeroLoadout";
 

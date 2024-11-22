@@ -26,10 +26,11 @@ namespace BanjoBotAssets.Exporters.Groups
         : BaseParsedItemName(BaseName, Rarity, Tier);
 
     internal sealed record SchematicItemGroupFields(string DisplayName, string? Description, string? SubType, string AlterationSlotsLoadoutRow,
-        string? AmmoType, string? WeaponOrTrapStatRowPrefix, string? CraftingRowPrefix, string? TriggerType, string? Category)
-        : BaseItemGroupFields(DisplayName, Description, SubType)
+        string? AmmoType, string? WeaponOrTrapStatRowPrefix, string? CraftingRowPrefix, string? TriggerType, string? Category,
+        string DisplayNameLocalized, string DescriptionLocalized)
+        : BaseItemGroupFields(DisplayName, DisplayNameLocalized, Description, DescriptionLocalized, SubType)
     {
-        public SchematicItemGroupFields() : this("", null, null, "", "", "", "", "", "") { }
+        public SchematicItemGroupFields() : this("", null, null, "", "", "", "", "", "", "", "") { }
     }
 
     internal sealed partial class SchematicExporter(IExporterContext services) : GroupExporter<UObject, ParsedSchematicName, SchematicItemGroupFields, SchematicItemData>(services)
@@ -216,9 +217,16 @@ namespace BanjoBotAssets.Exporters.Groups
                 logger.LogError(Resources.Warning_NoWeaponTrapDefinitionForCraftingRow, craftingRow.RowName);
                 return result;
             }
+            var displayNameObj = weaponOrTrapDef.ItemName;
+            var displayNameTH = displayNameObj?.TextHistory as FTextHistory.Base;
+            var displayName = displayNameTH?.SourceString;
+            var displayNameLocalized = displayNameTH?.LocalizedString;
 
-            var displayName = weaponOrTrapDef.ItemName?.Text ?? $"<{grouping.Key}>";
-            var description = weaponOrTrapDef.ItemDescription?.Text;
+            var descriptionObj = weaponOrTrapDef.ItemDescription;
+            var descriptionTH = descriptionObj?.TextHistory as FTextHistory.Base;
+            var description = descriptionTH.SourceString;
+            var descriptionLocalized = descriptionTH.LocalizedString;
+
             var (category, subType) = CategoryAndSubTypeFromTags(weaponOrTrapDef.GameplayTags);
             var alterationSlotsLoadoutRow = weaponOrTrapDef.GetOrDefault<FName>("AlterationSlotsLoadoutRow").Text;
             var ammoType = await AmmoTypeFromPathAsync(weaponOrTrapDef.GetOrDefault<FSoftObjectPath>("AmmoData"));
@@ -229,7 +237,9 @@ namespace BanjoBotAssets.Exporters.Groups
             return result with
             {
                 Description = description,
+                DescriptionLocalized = descriptionLocalized,
                 DisplayName = displayName,
+                DisplayNameLocalized = displayNameLocalized,
                 Category = category,
                 SubType = subType,
                 AlterationSlotsLoadoutRow = alterationSlotsLoadoutRow,
@@ -510,7 +520,7 @@ namespace BanjoBotAssets.Exporters.Groups
             foreach (var (k, v) in mapping.Properties)
             {
                 if (k?.GetValue(typeof(EFortRarity)) is EFortRarity rarity &&
-                    v?.GenericValue is UScriptStruct { StructType: FStructFallback weightedAlts })
+                    v?.GenericValue is FScriptStruct { StructType: FStructFallback weightedAlts })
                 {
                     var alts = weightedAlts.GetOrDefault<FStructFallback[]>("WeightData")
                         .Where(wd => !namedExclusions.Overlaps(wd.GetOrDefault<string[]>("ExclusionNames")))

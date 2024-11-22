@@ -21,9 +21,9 @@ namespace BanjoBotAssets.Exporters.Groups
 {
     internal record BaseParsedItemName(string BaseName, string Rarity, int Tier);
 
-    internal record BaseItemGroupFields(string DisplayName, string? Description, string? SubType)
+    internal record BaseItemGroupFields(string DisplayName, string? DisplayNameLocalized, string? DescriptionLocalized, string? Description, string? SubType)
     {
-        public BaseItemGroupFields() : this("", null, null) { }
+        public BaseItemGroupFields() : this("", null, null, null, null) { }
 
         public string? SmallPreviewImagePath { get; set; }
         public string? LargePreviewImagePath { get; set; }
@@ -161,6 +161,8 @@ namespace BanjoBotAssets.Exporters.Groups
                         {
                             AssetPath = provider.FixPath(Path.Combine(Path.GetDirectoryName(path)!, Path.GetFileNameWithoutExtension(path))),
                             Description = GetDescription(parsed, asset, fields),
+                            DescriptionLocalized = fields.DescriptionLocalized,
+                            DisplayNameLocalized = fields.DisplayNameLocalized,
                             DisplayName = GetDisplayName(parsed, asset, fields).Trim(),
                             Name = Path.GetFileNameWithoutExtension(path),
                             SubType = fields.SubType,
@@ -269,16 +271,23 @@ namespace BanjoBotAssets.Exporters.Groups
         /// </remarks>
         protected virtual Task<TFields> ExtractCommonFieldsAsync(TAsset asset, IGrouping<string?, string> grouping)
         {
+            var descriptionObj = asset.GetOrDefault<FText>("ItemDescription") ?? asset.GetOrDefault<FText>("Description");
+            var displayNameObj = asset.GetOrDefault<FText>("ItemName") ?? asset.GetOrDefault<FText>("DisplayName");
+
+            var descriptionTH = descriptionObj?.TextHistory as FTextHistory.Base;
+            var displayNameTH = displayNameObj?.TextHistory as FTextHistory.Base;
             return Task.FromResult(new TFields() with
             {
-                Description = asset.GetOrDefault<FText>("ItemDescription")?.Text ?? asset.GetOrDefault<FText>("Description")?.Text,
-                DisplayName = asset.GetOrDefault<FText>("ItemName")?.Text ?? asset.GetOrDefault<FText>("DisplayName")?.Text ?? $"<{grouping.Key}>",
+                Description = descriptionTH?.SourceString,
+                DescriptionLocalized = descriptionTH?.LocalizedString ?? "",
+                DisplayName = displayNameTH?.SourceString ?? $"<{grouping.Key}>",
+                DisplayNameLocalized = displayNameTH?.LocalizedString ?? "",
                 SubType = null,
                 SmallPreviewImagePath = asset.GetSoftAssetPathFromDataList("Icon"),
                 LargePreviewImagePath = asset.GetSoftAssetPathFromDataList("LargeIcon"),
                 IsPermanent = asset.GetOrDefault<FDataTableRowHandle>("SacrificeRecipe") is null or { RowName.IsNone: true } or { DataTable: null },
                 IsInventoryLimitExempt = !asset.GetOrDefault("bInventorySizeLimited", true),
-        });
+            });
         }
 
         /// <summary>
